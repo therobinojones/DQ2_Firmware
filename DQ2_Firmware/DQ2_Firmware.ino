@@ -50,6 +50,8 @@ Bounce debouncer = Bounce(); //debouncing instance for the Bounce2.h library
 volatile bool triggerState; // Trigger state
 bool filmRecorderEnabled = false;
 volatile unsigned long lastOptoInterruptMillis = 0;
+unsigned long cappingShutterTimer = 0;
+
 
 void setup(){
     pinMode(CAPPING_SHUTTER_PIN, OUTPUT);
@@ -128,6 +130,11 @@ void loop() {
             handleCommand(command);
             command = "";
         }
+    }
+
+    if (cappingShutterTimer > 0 && (millis() - cappingShutterTimer >= 500)) {
+        digitalWrite(CAPPING_SHUTTER_PIN, HIGH); // Deactivate the shutter; adjust HIGH/LOW as needed
+        cappingShutterTimer = 0; // Reset the timer
     }
 
     // Trigger input
@@ -332,7 +339,8 @@ if (command == "f") {
     }
 
     if (command == "x") {
-          digitalWrite(CAPPING_SHUTTER_PIN, HIGH); // Deactivate the shutter; set to LOW if that's your deactivation signal
+              cappingShutterTimer = millis(); // Start the timer
+
         if (stepperRunning) {
             // Calculate stop position at a full rotation from homing.
             long homePos = stepper.currentPosition() / stepsPerFullRotations * stepsPerFullRotations;
@@ -423,6 +431,7 @@ if (command.startsWith("gf") || command.startsWith("gb")) {
             }
         }
     }
+    digitalWrite(CAPPING_SHUTTER_PIN, HIGH); 
     isShooting = false;  // Shooting ends
     shootingStr = "idle"; 
     stepper.stop();
