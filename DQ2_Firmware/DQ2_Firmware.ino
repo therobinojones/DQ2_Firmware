@@ -10,8 +10,7 @@
 #define NOTE_C6  1047
 #define NOTE_D6  1175
 #define NOTE_E6  1319
-#define REST      0
-#define TRIGGER_INPUT23 23
+#define TRIGGER_INPUT23 0
 #define TRIGGER_DEBOUNCE_TIME 50 // Debounce time in milliseconds
 #define OPTO_INTERRUPT_DEBOUNCE_TIME 50 // Debounce time for film recorder tick in milliseconds
 
@@ -64,7 +63,7 @@ void setup(){
 
     stepper.setMaxSpeed(200000);
     stepper.setAcceleration(stepperAccel); //speed for moveto command used in homing
-    attachInterrupt(digitalPinToInterrupt(OPTO_PIN), interruptHandler, FALLING);
+    attachInterrupt(digitalPinToInterrupt(OPTO_PIN), interruptHandler, CHANGE);
     stepper.setMinPulseWidth(10); //only when using Teensy4.1
 
     // Starts serial 
@@ -94,7 +93,7 @@ void setup(){
     Serial.println("p - Mute/Unmute sound");
     Serial.println("go - Jog to particular frame. For example 'go10' will jog to 10th frame. 'go-1' will jog to previous frame");
     Serial.println("j - Reset frame number. J command follows the new frame. For example, 'j10' will reset current frame  to 10");
-    //homeStepper("f"); //home stepper forward
+    homeStepper("f"); //home stepper forward
     
     // Initialise frameNumber from EEPROM
     frameNumber = EEPROM.read(eepromAddress);
@@ -450,13 +449,25 @@ void homeStepper(String homing_direction) {
         long originalSpeed = motorSpeed; // Store the original speed
         motorSpeed = 1000; // Set the new speed for homing
 
-        // Set the direction for homing based on homing_direction
+        // Decision to move forward or backward during homing based on homing_direction
         if (homing_direction == "f") {
+            Serial.println("Moving stepper out of opto zone forward before homing...");
+            stepper.move(-50); // Move stepper 300 steps backward
+            while (stepper.run()) {}; // Continue moving until we've completed the move
+            delay(1);  // Add delay to let the motor stop
             stepper.setSpeed(-motorSpeed);  // Setting negative speed to go backwards
         } else if (homing_direction == "b") {
+            Serial.println("Moving stepper out of opto zone backward before homing...");
+            stepper.move(50); // Move stepper 300 steps forward
+            while (stepper.run()) {}; // Continue moving until we've completed the move
+            delay(1);  // Add delay to let the motor stop
             stepper.setSpeed(motorSpeed);  // Setting positive speed to go forward
         } else {
-            // Default case if no specific direction is specified
+            // default case if no specific direction is specified, homing backward for instance
+            Serial.println("Moving stepper out of opto zone forward before homing...");
+            stepper.move(-50); 
+            while (stepper.run()) {}; // Continue moving until we've completed the move
+            delay(1);  // Add delay to let the motor stop
             stepper.setSpeed(-motorSpeed);  
         }
 
@@ -466,7 +477,8 @@ void homeStepper(String homing_direction) {
         while (digitalRead(OPTO_PIN) == HIGH) {
             stepper.runSpeed();
         }
-        long currentFrame = stepper.currentPosition(); // store the current position
+
+    long currentFrame = stepper.currentPosition(); // store the current position
         delay(10);
         stepper.setCurrentPosition(0); // reset the position
         stepper.stop();
@@ -479,8 +491,6 @@ void homeStepper(String homing_direction) {
         motorSpeed = originalSpeed; // Reset the speed to the original global speed
     }
 }
-
-
 
 
 void stepperEnable(){
