@@ -53,7 +53,7 @@ volatile unsigned long lastOptoInterruptMillis = 0;
 
 void setup(){
     pinMode(CAPPING_SHUTTER_PIN, OUTPUT);
-    digitalWrite(CAPPING_SHUTTER_PIN, LOW);
+    digitalWrite(CAPPING_SHUTTER_PIN, HIGH);
     pinMode(OPTO_PIN, INPUT_PULLUP);
     pinMode(ENABLE_PIN, OUTPUT);
     pinMode(BEEPER_PIN, OUTPUT);
@@ -260,6 +260,7 @@ void handleCommand(String command){
     }
 
 if(command.startsWith("rf") || command.startsWith("rb")){
+    digitalWrite(CAPPING_SHUTTER_PIN, LOW); // Activate the shutter before starting shooting
     String numTimeStr = command.substring(2);
     int numTime;
     if(numTimeStr.toInt() == 0 && numTimeStr[0] != '0'){
@@ -331,6 +332,7 @@ if (command == "f") {
     }
 
     if (command == "x") {
+          digitalWrite(CAPPING_SHUTTER_PIN, HIGH); // Deactivate the shutter; set to LOW if that's your deactivation signal
         if (stepperRunning) {
             // Calculate stop position at a full rotation from homing.
             long homePos = stepper.currentPosition() / stepsPerFullRotations * stepsPerFullRotations;
@@ -363,6 +365,7 @@ if (command.startsWith("gf") || command.startsWith("gb")) {
     }
 
     int direction = command.startsWith("gf") ? -1 : 1;
+    digitalWrite(CAPPING_SHUTTER_PIN, LOW); // Activate the shutter before starting shooting
 
     for(int i=0; i < numFrames; i++) {
         isShooting = true;  // Shooting starts
