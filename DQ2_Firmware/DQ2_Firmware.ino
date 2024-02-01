@@ -2,6 +2,15 @@
 #include <EEPROM.h>
 #include <Bounce2.h>
 
+// Pin definitions for focus stepper motor
+#define FOCUS_STEP_PIN 9
+#define FOCUS_DIR_PIN 10
+#define FOCUS_ENABLE_PIN 11
+
+// Button pin definitions for focus control
+#define FOCUS_BACKWARD_BUTTON_PIN 29
+#define FOCUS_FORWARD_BUTTON_PIN 31
+
 #define CAPPING_SHUTTER_PIN 1
 #define STEP_PIN 3
 #define DIR_PIN 4
@@ -16,6 +25,18 @@
 #define OPTO_INTERRUPT_DEBOUNCE_TIME 50 // Debounce time for film recorder tick in milliseconds
 
 AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
+
+// Create an instance of the AccelStepper class for focus stepper
+AccelStepper focusStepper(AccelStepper::DRIVER, FOCUS_STEP_PIN, FOCUS_DIR_PIN);
+
+// Create instances of the Bounce class for debouncing the focus buttons
+Bounce focusBackwardButton = Bounce(); 
+Bounce focusForwardButton = Bounce();
+
+// Focus Stepper motor settings
+const long focusStepperAccel = 500; // Default acceleration for focus stepper
+const int focusMaxSpeed = 5000; // Maximum speed for focus stepper
+const int focusStepperSpeed = 1500; // Speed for focus stepper during movement
 
 volatile unsigned long lastTriggerMillis = 0;
 String command = "";
@@ -73,6 +94,21 @@ void setup(){
     attachInterrupt(digitalPinToInterrupt(OPTO_PIN), interruptHandler, CHANGE);
     stepper.setMinPulseWidth(10); //only when using Teensy4.1
 
+    // Focus stepper motor pin setup
+    pinMode(FOCUS_ENABLE_PIN, OUTPUT);
+    digitalWrite(FOCUS_ENABLE_PIN, HIGH); // Enable focus stepper motor
+
+    // Focus stepper settings
+    focusStepper.setMaxSpeed(focusMaxSpeed);
+    focusStepper.setAcceleration(focusStepperAccel);
+    focusStepper.setMinPulseWidth(10); // Set min pulse width for focus stepper
+
+    // Button setup for focus control
+    pinMode(FOCUS_BACKWARD_BUTTON_PIN, INPUT_PULLUP);
+    focusBackwardButton.attach(FOCUS_BACKWARD_BUTTON_PIN);
+    pinMode(FOCUS_FORWARD_BUTTON_PIN, INPUT_PULLUP);
+    focusForwardButton.attach(FOCUS_FORWARD_BUTTON_PIN);
+
     // Starts serial 
     Serial.begin(9600);
     delay(2000);
@@ -123,6 +159,9 @@ void setup(){
 }
 
 void loop() {
+
+  focus_logic();
+
     // Check and handle incoming commands
     while (Serial.available() > 0) {
         char inChar = Serial.read();
@@ -862,4 +901,28 @@ void BulbExposureCloseMode() {
 
 void handleInterrupt() {
   // Empty interrupt routine - actual handling is done in loop
+}
+
+// Function to handle focus adjustments based on button presses
+void focus_logic() {
+    // Update the state of focus control buttons
+    focusBackwardButton.update();
+    focusForwardButton.update();
+
+    // Check if the backward focus button is pressed
+    if (focusBackwardButton.read() == LOW) {
+        Serial.println("Backward focus button pressed");
+        focusStepper.setSpeed(-focusStepperSpeed); // Move focus stepper backwards
+    }
+    // Check if the forward focus button is pressed
+    else if (focusForwardButton.read() == LOW) {
+        Serial.println("Forward focus button pressed");
+        focusStepper.setSpeed(focusStepperSpeed); // Move focus stepper forwards
+    }
+    else {
+        focusStepper.setSpeed(0); // Stop focus stepper if no buttons are pressed
+    }
+
+    // Continuously run the focus stepper at the set speed
+    focusStepper.runSpeed();
 }
