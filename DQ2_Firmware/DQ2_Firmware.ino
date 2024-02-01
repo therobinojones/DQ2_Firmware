@@ -784,14 +784,14 @@ void setFrame(int newFrame) {
 
 
 void BulbExposureMode(String command) {
-
+    digitalWrite(CAPPING_SHUTTER_PIN, LOW); 
     motorSpeed = 2000;
     stepperAccel = 2000;
     stepper.setMaxSpeed(motorSpeed);
     stepper.setAcceleration(stepperAccel);
     long startPos = stepper.currentPosition();
     int direction = command.startsWith("bfo") ? -1 : 1;
-    long halfRotSteps = stepsPerFullRotations / 2;
+    long halfRotSteps = stepsPerFullRotations / 2 + 20; //the +20 is to compensate for the rotating shutter obstructing the frame.
    
     // Initialize the timer.
     startMillis = millis();
@@ -815,7 +815,7 @@ void BulbExposureMode(String command) {
 
 void BulbExposureCloseMode() {
     long startPos = stepper.currentPosition();
-    long halfRotSteps = stepsPerFullRotations / 2;
+    long halfRotSteps = stepsPerFullRotations / 2 -20; //the -20 is to compensate for the rotating shutter obstructing the frame.
     
     // Continue running until half of a full rotation has been completed.
     while(abs(stepper.currentPosition() - startPos) < halfRotSteps) {
@@ -828,6 +828,7 @@ void BulbExposureCloseMode() {
     frameNumber = round((float)stepper.currentPosition() / (float)stepsPerFullRotations) * stepperDirection;
    
     Serial.println("Bulb operation complete");
+    digitalWrite(CAPPING_SHUTTER_PIN, HIGH); 
     isShooting = false;
     shootingStr = "idle";
 
