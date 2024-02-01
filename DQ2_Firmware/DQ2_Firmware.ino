@@ -51,6 +51,8 @@ volatile bool triggerState; // Trigger state
 bool filmRecorderEnabled = false;
 volatile unsigned long lastOptoInterruptMillis = 0;
 unsigned long cappingShutterTimer = 0;
+String lastBulbExposureCommand = "";
+
 
 
 void setup(){
@@ -784,6 +786,7 @@ void setFrame(int newFrame) {
 
 
 void BulbExposureMode(String command) {
+    lastBulbExposureCommand = command; // Update the last command
     digitalWrite(CAPPING_SHUTTER_PIN, LOW); 
     motorSpeed = 2000;
     stepperAccel = 2000;
@@ -791,8 +794,13 @@ void BulbExposureMode(String command) {
     stepper.setAcceleration(stepperAccel);
     long startPos = stepper.currentPosition();
     int direction = command.startsWith("bfo") ? -1 : 1;
-    long halfRotSteps = stepsPerFullRotations / 2 + 20; //the +20 is to compensate for the rotating shutter obstructing the frame.
-   
+
+    long extraSteps = 25; // Define the extra steps to fully open camera rotating shutter 
+    if (command.startsWith("bbo")) {
+        extraSteps = -extraSteps; // Reverse the extra steps for backward motion if rotating shutter
+    }
+    long halfRotSteps = stepsPerFullRotations / 2 + extraSteps;
+
     // Initialize the timer.
     startMillis = millis();
     bulbModeActive = true;
@@ -815,10 +823,17 @@ void BulbExposureMode(String command) {
 
 void BulbExposureCloseMode() {
     long startPos = stepper.currentPosition();
-    long halfRotSteps = stepsPerFullRotations / 2 -20; //the -20 is to compensate for the rotating shutter obstructing the frame.
-    
-    // Continue running until half of a full rotation has been completed.
-    while(abs(stepper.currentPosition() - startPos) < halfRotSteps) {
+    long extraSteps = 25; // Define the extra steps to fully open camera rotating shutter 
+
+    // Assume the direction is stored or can be inferred here
+    // For example, if the last mode was 'bbo', set extraSteps to negative
+    if (lastBulbExposureCommand.startsWith("bbo")) {
+        extraSteps = -extraSteps;
+    }
+
+    long totalRotSteps = stepsPerFullRotations - (stepsPerFullRotations / 2 + extraSteps);
+
+    while(abs(stepper.currentPosition() - startPos) < totalRotSteps) {
         stepper.runSpeed();
     }
     
