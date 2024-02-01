@@ -2,10 +2,11 @@
 #include <EEPROM.h>
 #include <Bounce2.h>
 
+#define CAPPING_SHUTTER_PIN 1
 #define STEP_PIN 3
 #define DIR_PIN 4
 #define ENABLE_PIN 5
-#define OPTO_PIN 22
+#define OPTO_PIN 23
 #define BEEPER_PIN 16
 #define NOTE_C6  1047
 #define NOTE_D6  1175
@@ -51,6 +52,8 @@ bool filmRecorderEnabled = false;
 volatile unsigned long lastOptoInterruptMillis = 0;
 
 void setup(){
+    pinMode(CAPPING_SHUTTER_PIN, OUTPUT);
+    digitalWrite(CAPPING_SHUTTER_PIN, LOW);
     pinMode(OPTO_PIN, INPUT_PULLUP);
     pinMode(ENABLE_PIN, OUTPUT);
     pinMode(BEEPER_PIN, OUTPUT);
