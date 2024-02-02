@@ -267,6 +267,18 @@ int calculateSteps(int time_in_seconds) {
 
 void handleCommand(String command){
 
+    //capping shutter commands
+    if (command.startsWith("capshutter")) {
+        if (command.endsWith("on")) {
+            digitalWrite(CAPPING_SHUTTER_PIN, LOW); // Activate the capping shutter
+            Serial.println("Capping shutter activated");
+        } else if (command.endsWith("off")) {
+            digitalWrite(CAPPING_SHUTTER_PIN, HIGH); // Deactivate the capping shutter
+            Serial.println("Capping shutter deactivated");
+        } else {
+            Serial.println("Invalid capshutter command. Use 'capshutter on' or 'capshutter off'.");
+        }
+    }
 
     // Add handling for focus control commands
     if (command == "ff") {
