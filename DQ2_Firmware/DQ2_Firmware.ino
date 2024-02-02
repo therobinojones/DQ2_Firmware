@@ -73,7 +73,7 @@ bool filmRecorderEnabled = false;
 volatile unsigned long lastOptoInterruptMillis = 0;
 unsigned long cappingShutterTimer = 0;
 String lastBulbExposureCommand = "";
-
+int serialFocusDirection = 0; // 0 = Stop, -1 = Backward, 1 = Forward
 
 
 void setup(){
@@ -267,6 +267,15 @@ int calculateSteps(int time_in_seconds) {
 
 void handleCommand(String command){
 
+
+    // Add handling for focus control commands
+    if (command == "ff") {
+        serialFocusDirection = 1; // Set to move forward
+    } else if (command == "fb") {
+        serialFocusDirection = -1; // Set to move backward
+    } else if (command == "fs") {
+        serialFocusDirection = 0; // Set to stop
+    }
 
     if (command.startsWith("a")) {
         int newAccel = command.substring(1).toInt();
@@ -903,22 +912,32 @@ void handleInterrupt() {
   // Empty interrupt routine - actual handling is done in loop
 }
 
-// Function to handle focus adjustments based on button presses
 void focus_logic() {
     // Update the state of focus control buttons
     focusBackwardButton.update();
     focusForwardButton.update();
 
-    // Check if the backward focus button is pressed
+    int focusMoveDirection = 0; // 0 = Stop, -1 = Backward, 1 = Forward
+
+    // Determine direction from physical buttons
     if (focusBackwardButton.read() == LOW) {
-        focusStepper.setSpeed(-focusStepperSpeed); // Move focus stepper backwards
+        focusMoveDirection = -1;
+    } else if (focusForwardButton.read() == LOW) {
+        focusMoveDirection = 1;
     }
-    // Check if the forward focus button is pressed
-    else if (focusForwardButton.read() == LOW) {
-        focusStepper.setSpeed(focusStepperSpeed); // Move focus stepper forwards
+
+    // Override direction if there's a serial command for focus control
+    if (serialFocusDirection != 0) {
+        focusMoveDirection = serialFocusDirection;
     }
-    else {
-        focusStepper.setSpeed(0); // Stop focus stepper if no buttons are pressed
+
+    // Control the stepper based on the resolved direction
+    if (focusMoveDirection == 1) {
+        focusStepper.setSpeed(focusStepperSpeed); // Move forward
+    } else if (focusMoveDirection == -1) {
+        focusStepper.setSpeed(-focusStepperSpeed); // Move backward
+    } else {
+        focusStepper.setSpeed(0); // Stop
     }
 
     // Continuously run the focus stepper at the set speed
