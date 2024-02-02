@@ -911,12 +911,10 @@ void focus_logic() {
 
     // Check if the backward focus button is pressed
     if (focusBackwardButton.read() == LOW) {
-        Serial.println("Backward focus button pressed");
         focusStepper.setSpeed(-focusStepperSpeed); // Move focus stepper backwards
     }
     // Check if the forward focus button is pressed
     else if (focusForwardButton.read() == LOW) {
-        Serial.println("Forward focus button pressed");
         focusStepper.setSpeed(focusStepperSpeed); // Move focus stepper forwards
     }
     else {
