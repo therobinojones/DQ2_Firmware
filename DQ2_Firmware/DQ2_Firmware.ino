@@ -33,6 +33,9 @@ AccelStepper focusStepper(AccelStepper::DRIVER, FOCUS_STEP_PIN, FOCUS_DIR_PIN);
 Bounce focusBackwardButton = Bounce(); 
 Bounce focusForwardButton = Bounce();
 
+
+int rotationsPerFrame = 1; // Default is 1 for 4 perf and 16mm, will be set to 2 for VistaVision
+
 // Focus Stepper motor settings
 const long focusStepperAccel = 500; // Default acceleration for focus stepper
 const int focusMaxSpeed = 5000; // Maximum speed for focus stepper
@@ -190,7 +193,9 @@ void loop() {
   }
 
     // Stepper frame calculation and running
-    long stepperPos = round((float)stepper.currentPosition() / (float)stepsPerFullRotations) * stepperDirection;
+    //long stepperPos = round((float)stepper.currentPosition() / (float)stepsPerFullRotations) * stepperDirection;
+    long stepperPos = round((float)stepper.currentPosition() / ((float)stepsPerFullRotations * rotationsPerFrame)) * stepperDirection;
+
     if (stepperPos != lastStepperPos) { 
         frameNumber = stepperPos; 
         lastStepperPos = stepperPos; 
@@ -266,6 +271,21 @@ int calculateSteps(int time_in_seconds) {
 }
 
 void handleCommand(String command){
+
+
+
+if (command.startsWith("format")) {
+    if (command.endsWith("4p")) {
+        rotationsPerFrame = 1;
+        Serial.println("Camera set to 4 perf / 16mm");
+    } else if (command.endsWith("vv")) {
+        rotationsPerFrame = 2;
+        Serial.println("Camera set to VistaVision");
+    } else {
+        Serial.println("Invalid camera type command. Use 'format 4p', or 'format vv'.");
+    }
+}
+
 
     //capping shutter commands
     if (command.startsWith("capshutter")) {
