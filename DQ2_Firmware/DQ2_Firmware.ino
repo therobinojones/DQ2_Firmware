@@ -193,8 +193,13 @@ void loop() {
   }
 
     // Stepper frame calculation and running
+
+    //regular way without rotationsPerFrame flag
     //long stepperPos = round((float)stepper.currentPosition() / (float)stepsPerFullRotations) * stepperDirection;
-    long stepperPos = round((float)stepper.currentPosition() / ((float)stepsPerFullRotations * rotationsPerFrame)) * stepperDirection;
+
+//new way with rotationsPerFrame flag
+//we need to go through code and add the flag to every function that needs it.
+      long stepperPos = round((float)stepper.currentPosition() / ((float)stepsPerFullRotations * rotationsPerFrame)) * stepperDirection;
 
     if (stepperPos != lastStepperPos) { 
         frameNumber = stepperPos; 
@@ -288,7 +293,7 @@ if (command.startsWith("format")) {
 
 
     //capping shutter commands
-    if (command.startsWith("capshutter")) {
+    if (command.startsWith("cap")) {
         if (command.endsWith("on")) {
             digitalWrite(CAPPING_SHUTTER_PIN, LOW); // Activate the capping shutter
             Serial.println("Capping shutter activated");
@@ -536,7 +541,7 @@ if (command.startsWith("s")) {
 }
 
 void printShootingStatus() {
-  Serial.print("SHOOTING = "); 
+  Serial.print("SHOOTING = ");
   Serial.println(shootingStr);
 }
 
